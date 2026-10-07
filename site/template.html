@@ -478,6 +478,13 @@ function kakaoEngine() {
   };
 }
 
+// 후보가 없는 종류는 카드·필터에서 빼고, 남는 종류가 하나뿐이면 "세 갈래" 구역을 통째로 숨긴다
+(function hideEmptyGroups() {
+  const present = new Set(CANDIDATES.map(c => c.g));
+  Object.keys(GROUPS).forEach(g => { if (!present.has(g)) { delete GROUPS[g]; state.groups.delete(g); document.getElementById("card-" + g)?.remove(); document.querySelectorAll(`.legend .dot.${g}`).forEach(d => d.parentElement.remove()); } });
+  if (present.size < 2) document.querySelector(".kinds")?.remove();
+})();
+
 let markers = {};
 function boot(engine) {
   CANDIDATES.forEach(c => { markers[c.id] = engine.marker(c); });
