@@ -1,0 +1,476 @@
+<title>청주 전원주택 지도</title>
+<meta name="description" content="청주의 전원주택 단지, 단독주택 택지, 전원주택 밀집지를 한 지도에 모았습니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@300;400;500&display=swap">
+<style>/*LEAFLET_CSS*/</style>
+<style>
+/* Layout: 휴양지 템플릿 톤의 한 페이지. 첫 화면(산 능선) → 소개 → 세 갈래 카드 → 지도(목록+지도) → 안내/푸터.
+   의도적으로 밝은 웜 그레이 한 가지 톤만 쓴다(다크 모드 없음). */
+:root {
+  color-scheme: light;
+  --paper: #e9e7e4;
+  --panel: #f4f2ef;
+  --ink: #37312a;
+  --muted: #6e665d;
+  --line: #cfc8bf;
+  --taupe: #7f7570;
+  --cream: #f6f3ee;
+  --grpA: #5d6e4b;
+  --grpB: #ad7f3c;
+  --grpC: #5b6f87;
+  --warn: #8c5a1e;
+  --font-display: "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
+  --font-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --wrap: 1180px;
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-weight: 300; font-size: 15px; line-height: 1.75; margin: 0; }
+a { color: inherit; }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding-inline: 24px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.2; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+.eyebrow { font-size: 15px; color: var(--muted); margin: 8px 0 0; }
+.pill { display: inline-flex; align-items: center; justify-content: center; font: inherit; font-weight: 400; font-size: 16px; padding: 12px 34px; border-radius: 999px; border: 1px solid currentColor; background: transparent; color: inherit; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
+.pill:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+.pill.solid { background: var(--cream); color: var(--ink); border-color: var(--cream); }
+.pill.solid:hover { background: #fff; color: var(--ink); }
+:focus-visible { outline: 2px solid var(--grpB); outline-offset: 3px; }
+
+/* 첫 화면 */
+.hero { position: relative; height: min(88vh, 880px); min-height: 560px; overflow: hidden; color: #fff; background: #4a4f4c; }
+#sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.topbar { position: absolute; z-index: 2; top: 28px; left: 32px; right: 32px; display: flex; align-items: center; gap: 24px; padding: 22px 40px; background: rgba(127,117,112,0.92); }
+.logo { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 400; text-decoration: none; white-space: nowrap; }
+.logo svg { width: 20px; height: 20px; }
+.topbar nav { flex: 1; display: flex; justify-content: center; gap: 28px; font-size: 16px; font-weight: 400; }
+.topbar nav a { text-decoration: none; text-underline-offset: 6px; }
+.topbar nav a:hover, .topbar nav a[aria-current] { text-decoration: underline; }
+.topbar .pill { padding: 10px 40px; }
+.hero-copy { position: absolute; z-index: 1; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 120px 24px 0; gap: 14px; text-shadow: 0 2px 24px rgba(40,30,20,.35); }
+.hero h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(40px, 7vw, 92px); line-height: 1.1; margin: 0; letter-spacing: -0.03em; text-wrap: balance; }
+.hero-copy > * { flex: none; max-width: 100%; }
+.hero-copy .pill { width: max-content; }
+.hero-copy p { margin: 0 0 22px; font-size: clamp(16px, 1.6vw, 20px); font-weight: 400; }
+
+/* 소개 */
+.about { padding-block: 120px; }
+.about .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+.about-text { max-width: 34em; font-size: 17px; }
+.about-text p { margin: 0 0 22px; }
+.about-text strong { font-weight: 500; }
+
+/* 세 갈래 */
+.kinds { padding-block: 40px 110px; }
+.kinds-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 56px; }
+.kinds-head span { font-size: 13px; color: var(--muted); }
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.card { display: flex; flex-direction: column; gap: 14px; text-align: left; font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; min-width: 0; }
+.card canvas { width: 100%; aspect-ratio: 3 / 4; max-width: 100%; display: block; background: var(--taupe); }
+.card h3 { font-family: var(--font-display); font-weight: 400; font-size: 20px; margin: 4px 0 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.card h3 em { font-style: normal; font-family: var(--font-body); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.7; }
+.card:hover h3 { text-decoration: underline; text-underline-offset: 5px; }
+
+/* 지도 */
+.mapsec { padding-block: 40px 110px; }
+.mapsec-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
+#summary { margin: 0; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.app { display: grid; grid-template-columns: 340px 1fr; height: 700px; border: 1px solid var(--line); background: var(--panel); }
+aside { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--line); }
+.controls { padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 13px; font-weight: 400; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+.chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+.chip .n { font-variant-numeric: tabular-nums; color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.dot.A { background: var(--grpA); } .dot.B { background: var(--grpB); } .dot.C { background: var(--grpC); }
+#q { font: inherit; font-size: 14px; padding: 6px 2px; border: 0; border-bottom: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 0; }
+#q::placeholder { color: var(--muted); }
+.list { overflow-y: auto; flex: 1; min-height: 0; }
+.gu { position: sticky; top: 0; z-index: 1; background: var(--panel); padding: 12px 18px 4px; font-size: 12px; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--line); }
+.item { display: grid; grid-template-columns: 9px 1fr; gap: 2px 12px; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 18px; cursor: pointer; }
+.item:hover, .item.on { background: var(--paper); }
+.item .dot { margin-top: 8px; }
+.item .name { font-weight: 400; font-size: 15px; min-width: 0; }
+.item .meta { grid-column: 2; color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.tag { font-size: 11px; padding: 0 7px; border-radius: 999px; border: 1px solid currentColor; }
+.tag.approx { color: var(--warn); }
+.empty { padding: 28px 18px; color: var(--muted); }
+.mapwrap { position: relative; min-height: 0; min-width: 0; }
+#map { position: absolute; inset: 0; background: var(--paper); }
+.legend { position: absolute; z-index: 500; right: 14px; bottom: 14px; background: var(--panel); border: 1px solid var(--line); padding: 10px 14px; font-size: 12px; display: grid; gap: 5px; }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.ring { width: 12px; height: 12px; border-radius: 50%; border: 2px dashed var(--muted); box-sizing: border-box; }
+.solid { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); margin: 1.5px; }
+/* 지도 도형: SVG 속성보다 CSS가 우선 */
+.dong { fill: var(--cream); stroke: var(--line); stroke-width: 1; fill-opacity: 0.9; }
+.has-tiles .dong { fill-opacity: 0; stroke: var(--taupe); }
+.dong-label { background: var(--panel); border: 1px solid var(--line); box-shadow: none; color: var(--muted); font-size: 11px; padding: 1px 6px; }
+.dong-label::before { display: none; }
+.pin.A { fill: var(--grpA); stroke: var(--grpA); } .pin.B { fill: var(--grpB); stroke: var(--grpB); } .pin.C { fill: var(--grpC); stroke: var(--grpC); }
+.pin { fill-opacity: 0.95; stroke-width: 2; }
+.pin:not(.approx) { stroke: var(--cream); }
+.pin.approx { fill-opacity: 0.2; stroke-dasharray: 4 3; }
+.pin.on { stroke: var(--ink); stroke-width: 3; }
+.leaflet-container { font-family: var(--font-body); background: var(--paper); }
+.leaflet-popup-content-wrapper { background: var(--panel); color: var(--ink); border-radius: 2px; box-shadow: 0 6px 24px rgba(55,49,42,.18); }
+.leaflet-popup-tip { background: var(--panel); }
+.leaflet-popup-content { margin: 18px 20px; width: 300px; max-height: 340px; overflow-y: auto; line-height: 1.6; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+.leaflet-bar a { background: var(--panel); color: var(--ink); border-color: var(--line); }
+.leaflet-container .leaflet-control-attribution { background: var(--panel); color: var(--muted); }
+.pop h3 { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0 0 4px; text-wrap: balance; }
+.pop .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+.pop dl { display: grid; grid-template-columns: 52px 1fr; gap: 5px 12px; margin: 0; font-size: 13px; }
+.pop dt { color: var(--muted); }
+.pop dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: 400; }
+.pop .note { margin-top: 12px; font-size: 12px; color: var(--warn); }
+.pop a { color: var(--grpA); }
+
+/* 안내 + 푸터 */
+.notes { padding-block: 20px 110px; }
+.notes .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+.notes ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; font-size: 14px; color: var(--muted); max-width: 32em; }
+.notes li { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.notes li b { display: block; font-weight: 500; color: var(--ink); }
+footer { position: relative; height: 300px; margin-inline: 16px; overflow: hidden; background: #6b7266; }
+#foot { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+footer p { position: absolute; z-index: 1; left: 0; right: 0; bottom: 22px; margin: 0; text-align: center; color: #fff; font-size: 13px; text-shadow: 0 1px 10px rgba(0,0,0,.4); padding-inline: 16px; }
+
+@media (max-width: 860px) {
+  .topbar { top: 12px; left: 12px; right: 12px; padding: 14px 18px; flex-wrap: wrap; gap: 8px 16px; }
+  .topbar nav { order: 3; flex-basis: 100%; justify-content: flex-start; gap: 18px; font-size: 14px; }
+  .topbar .pill { margin-left: auto; padding: 6px 18px; font-size: 14px; }
+  .about { padding-block: 72px; }
+  .about .wrap, .notes .wrap { grid-template-columns: 1fr; gap: 24px; }
+  .cards { grid-template-columns: 1fr; gap: 36px; }
+  .card canvas { aspect-ratio: 16 / 10; }
+  .app { grid-template-columns: 1fr; grid-template-rows: 60vh auto; height: auto; }
+  .mapwrap { grid-row: 1; } aside { grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
+  .list { max-height: 520px; }
+  .legend { display: none; }
+  .leaflet-popup-content { width: 230px; }
+  footer { margin-inline: 0; height: 200px; }
+}
+</style>
+
+<section class="hero" id="home">
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <header class="topbar">
+    <a class="logo" href="#home"><svg viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor"><circle cx="10" cy="3.5" r="2.3"/><circle cx="10" cy="16.5" r="2.3"/><circle cx="3.5" cy="10" r="2.3"/><circle cx="16.5" cy="10" r="2.3"/><circle cx="5.4" cy="5.4" r="2"/><circle cx="14.6" cy="14.6" r="2"/><circle cx="14.6" cy="5.4" r="2"/><circle cx="5.4" cy="14.6" r="2"/></g></svg>청주 전원주택 지도</a>
+    <nav aria-label="페이지 메뉴">
+      <a href="#home" aria-current="page">홈</a>
+      <a href="#about">소개</a>
+      <a href="#map-section">지도</a>
+      <a href="#notes">안내</a>
+    </nav>
+    <a class="pill" href="#map-section">지도 보기</a>
+  </header>
+  <div class="hero-copy">
+    <h1>마당 있는 집, 어디쯤일까</h1>
+    <p>청주의 전원주택 단지와 마을을 한 지도에 모았어요</p>
+    <a class="pill solid" href="#map-section">지도 둘러보기</a>
+  </div>
+</section>
+
+<section class="about" id="about">
+  <div class="wrap">
+    <div>
+      <h2>소개</h2>
+      <p class="eyebrow">이 지도를 만든 이유</p>
+    </div>
+    <div class="about-text">
+      <p>아파트는 시세표 하나로 비교가 끝나지만, 전원주택은 어디에 단지가 있는지 아는 것부터 쉽지 않아요. 기사, 분양 공고, 카페 글, 지도 검색에 흩어진 정보를 모아 <strong>청주 전원주택 후보 <span data-count="all">35</span>곳</strong>을 한곳에 정리했어요.</p>
+      <p>곳마다 규모, 조성 시기, 알려진 가격, 출처를 함께 적었어요. 앞으로는 정해 둔 기준에 따라 주변 환경을 분석해서 점수와 리뷰도 붙일 예정이에요.</p>
+      <a class="pill" href="#map-section">지도에서 보기</a>
+    </div>
+  </div>
+</section>
+
+<section class="kinds" aria-labelledby="kinds-title">
+  <div class="wrap">
+    <div class="kinds-head">
+      <h2 id="kinds-title">세 갈래로 나눴어요</h2>
+      <span>카드를 누르면 지도에 그 종류만 보여요</span>
+    </div>
+    <div class="cards">
+      <button class="card" type="button" id="card-A" data-g="A">
+        <canvas data-scene="A" aria-hidden="true"></canvas>
+        <h3>전원주택 단지 <em><span data-count="A"></span>곳</em></h3>
+        <p>타운하우스, 전원마을처럼 한 번에 계획해서 지은 곳이에요. 진입로, 상하수도 같은 기반시설이 갖춰진 경우가 많아요.</p>
+      </button>
+      <button class="card" type="button" id="card-B" data-g="B">
+        <canvas data-scene="B" aria-hidden="true"></canvas>
+        <h3>단독주택 택지 <em><span data-count="B"></span>곳</em></h3>
+        <p>신도시나 산업단지 안에 단독주택을 지을 수 있게 나눠 둔 땅이에요. 도시 기반시설 가까이에서 집을 지을 수 있어요.</p>
+      </button>
+      <button class="card" type="button" id="card-C" data-g="C">
+        <canvas data-scene="C" aria-hidden="true"></canvas>
+        <h3>전원주택 밀집지 <em><span data-count="C"></span>곳</em></h3>
+        <p>단지는 아니지만 개별 전원주택이 자연스럽게 모여든 동네예요. 정확한 경계 없이 대략적인 위치로 표시했어요.</p>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="mapsec" id="map-section">
+  <div class="wrap">
+    <div class="mapsec-head">
+      <div>
+        <h2>지도</h2>
+        <p class="eyebrow">핀이나 목록을 누르면 자세한 정보가 열려요</p>
+      </div>
+      <p id="summary" aria-live="polite">후보를 불러오는 중이에요</p>
+    </div>
+    <div class="app">
+      <aside>
+        <div class="controls">
+          <div class="chips" id="chips" role="group" aria-label="종류 필터"></div>
+          <input id="q" type="search" placeholder="이름이나 동네로 찾기 (예: 오창, 고은리)" aria-label="검색">
+        </div>
+        <div class="list" id="list"></div>
+      </aside>
+      <div class="mapwrap">
+        <div id="map" role="region" aria-label="청주 지도"></div>
+        <div class="legend" aria-label="범례">
+          <div><span class="dot A"></span>전원주택 단지</div>
+          <div><span class="dot B"></span>단독주택 택지</div>
+          <div><span class="dot C"></span>전원주택 밀집지</div>
+          <div><span class="solid"></span>지번까지 확인된 위치</div>
+          <div><span class="ring"></span>동네 중심 등 대략 위치</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="notes" id="notes">
+  <div class="wrap">
+    <div>
+      <h2>안내</h2>
+      <p class="eyebrow">데이터를 읽기 전에</p>
+    </div>
+    <ul>
+      <li><b>대략 위치가 섞여 있어요</b>정확한 지번을 못 찾은 곳은 리나 동의 중심에 점선 원으로 찍었어요. 실제 단지 위치와 차이가 날 수 있어요.</li>
+      <li><b>가격은 시점이 제각각이에요</b>기사나 매물 글에 나온 가격을 그대로 옮겼어요. 기준 시점이 출처마다 달라요.</li>
+      <li><b>출처를 꼭 확인해 주세요</b>각 핀에 출처 링크를 붙여 뒀어요. 확실도가 낮은 곳은 현장 확인 전이에요.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <canvas id="foot" aria-hidden="true"></canvas>
+  <p>청주 전원주택 지도 · 경계 자료: 행정동 경계(vuski/admdongkor) · 위치 검색: 카카오 로컬</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------- 풍경 그림 (사진 대신 캔버스로 그린 산 능선) ---------- */
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function ridge(ctx, w, h, base, amp, seed, color, freq = 1) {
+  const r = rng(seed), p = [r() * 6, r() * 6, r() * 6];
+  ctx.beginPath(); ctx.moveTo(0, h);
+  for (let x = 0; x <= w; x += 4) {
+    const t = x / w * freq;
+    const y = base + amp * (0.55 * Math.sin(t * 5.1 + p[0]) + 0.3 * Math.sin(t * 11.3 + p[1]) + 0.15 * Math.sin(t * 23.7 + p[2]));
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(w, h); ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+}
+function mist(ctx, w, y, hgt, alpha) {
+  const g = ctx.createLinearGradient(0, y - hgt, 0, y + hgt);
+  g.addColorStop(0, "rgba(250,240,225,0)"); g.addColorStop(0.5, `rgba(250,240,225,${alpha})`); g.addColorStop(1, "rgba(250,240,225,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, y - hgt, w, hgt * 2);
+}
+function pines(ctx, w, h, y0, n, seed, color, size) {
+  const r = rng(seed); ctx.fillStyle = color;
+  for (let i = 0; i < n; i++) {
+    const x = r() * w, s = size * (0.6 + r() * 0.8), y = y0 + r() * size * 0.6;
+    ctx.beginPath(); ctx.moveTo(x, y - s * 2.2);
+    for (let k = 0; k < 4; k++) { const yy = y - s * 2.2 + (k + 1) * s * 0.55; ctx.lineTo(x + s * (0.3 + k * 0.16), yy); ctx.lineTo(x + s * 0.08, yy - s * 0.12); }
+    for (let k = 3; k >= 0; k--) { const yy = y - s * 2.2 + (k + 1) * s * 0.55; ctx.lineTo(x - s * 0.08, yy - s * 0.12); ctx.lineTo(x - s * (0.3 + k * 0.16), yy); }
+    ctx.closePath(); ctx.fill(); ctx.fillRect(x - s * 0.05, y, s * 0.1, s * 0.4);
+  }
+}
+function house(ctx, x, y, s, wall, roof, lit) {
+  ctx.fillStyle = wall; ctx.fillRect(x, y - s * 0.7, s * 1.2, s * 0.7);
+  ctx.fillStyle = roof; ctx.beginPath(); ctx.moveTo(x - s * 0.12, y - s * 0.68); ctx.lineTo(x + s * 0.6, y - s * 1.2); ctx.lineTo(x + s * 1.32, y - s * 0.68); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = lit; ctx.fillRect(x + s * 0.2, y - s * 0.5, s * 0.25, s * 0.22); ctx.fillRect(x + s * 0.75, y - s * 0.5, s * 0.25, s * 0.22);
+}
+function fit(cv) {
+  const d = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+  const ctx = cv.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0); return [ctx, w, h];
+}
+function drawSky(cv, opts = {}) {
+  const [ctx, w, h] = fit(cv); if (!w || !h) return;
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, opts.top || "#8d8f98"); g.addColorStop(0.42, opts.mid || "#e9cfa4"); g.addColorStop(0.62, opts.low || "#f3dfb8"); g.addColorStop(1, "#b9b2a2");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  const sx = w * (opts.sunX ?? 0.72), sy = h * 0.5;
+  const sun = ctx.createRadialGradient(sx, sy, 0, sx, sy, Math.max(w, h) * 0.45);
+  sun.addColorStop(0, "rgba(255,246,214,0.95)"); sun.addColorStop(0.15, "rgba(255,232,180,0.55)"); sun.addColorStop(1, "rgba(255,232,180,0)");
+  ctx.fillStyle = sun; ctx.fillRect(0, 0, w, h);
+  const layers = opts.layers || [
+    [0.5, 0.05, "#8f9298"], [0.56, 0.06, "#7b8087"], [0.63, 0.07, "#626a6b"], [0.71, 0.08, "#48524c"], [0.82, 0.07, "#2f3a32"]
+  ];
+  layers.forEach(([b, a, c], i) => {
+    ridge(ctx, w, h, h * b, h * a, 11 + i * 7 + (opts.seed || 0), c, 1 + i * 0.25);
+    if (i < layers.length - 1) mist(ctx, w, h * (b + 0.06), h * 0.05, 0.38 - i * 0.05);
+  });
+  if (opts.pines !== false) pines(ctx, w, h, h * 0.92, Math.round(w / 34), 5 + (opts.seed || 0), "#1f2822", Math.max(14, h * 0.045));
+  if (opts.after) opts.after(ctx, w, h);
+}
+const SCENES = {
+  A: { seed: 3, sunX: 0.3, pines: false, after: (c, w, h) => {
+        [0.12, 0.38, 0.64].forEach(f => house(c, w * f, h * 0.9, w * 0.17, "#d8cbb8", "#3b3732", "#f4d38a"));
+        pines(c, w, h, h * 0.98, 6, 9, "#1f2822", h * 0.05); } },
+  B: { seed: 8, sunX: 0.6, top: "#9aa0a5", mid: "#e7d6b8", pines: false, after: (c, w, h) => {
+        c.strokeStyle = "rgba(246,243,238,.75)"; c.lineWidth = 1.4;
+        for (let i = 0; i < 6; i++) { const y = h * (0.8 + i * 0.035); c.beginPath(); c.moveTo(0, y); c.lineTo(w, y - i * 3); c.stroke(); }
+        for (let i = 1; i < 5; i++) { c.beginPath(); c.moveTo(w * i / 5, h * 0.8); c.lineTo(w * i / 5 + (i - 2.5) * 30, h); c.stroke(); }
+        house(c, w * 0.62, h * 0.86, w * 0.16, "#d8cbb8", "#3b3732", "#f4d38a"); } },
+  C: { seed: 15, sunX: 0.8, top: "#7f8796", mid: "#dcc7a6", after: (c, w, h) => {
+        [[0.1, 0.78, 0.09], [0.46, 0.83, 0.11], [0.78, 0.76, 0.08]].forEach(([x, y, s]) => house(c, w * x, h * y, w * s * 1.4, "#cdbfa9", "#2f2b27", "#f4d38a")); } }
+};
+function paintAll() {
+  drawSky(document.getElementById("sky"), { after: (c, w, h) => house(c, w * 0.08, h * 0.95, Math.min(w * 0.16, 220), "#6b4e35", "#262321", "#f2c879") });
+  drawSky(document.getElementById("foot"), { seed: 21, sunX: 0.5, top: "#a8b0a8", mid: "#e6e2d4", low: "#eceadf",
+    layers: [[0.35, 0.08, "#9aa49a"], [0.48, 0.09, "#7f8d80"], [0.62, 0.1, "#5f6f61"], [0.78, 0.1, "#3e4c40"]] });
+  document.querySelectorAll("canvas[data-scene]").forEach(cv => drawSky(cv, SCENES[cv.dataset.scene]));
+}
+paintAll();
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(paintAll, 150); });
+
+/* ---------- 지도 ---------- */
+const CANDIDATES = /*CANDIDATES_JSON*/;
+const DONG = /*DONG_GEOJSON*/;
+
+const GROUPS = { A: "전원주택 단지", B: "단독주택 택지", C: "전원주택 밀집지" };
+const GU_ORDER = ["상당구", "서원구", "흥덕구", "청원구"];
+const state = { groups: new Set(["A", "B", "C"]), q: "", selected: null };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const isApprox = c => c.precision !== "정확";
+
+document.querySelectorAll("[data-count]").forEach(el => {
+  const g = el.dataset.count;
+  el.textContent = g === "all" ? CANDIDATES.length : CANDIDATES.filter(c => c.g === g).length;
+});
+
+// 같은 좌표(예: 고은리 중심)에 겹치는 핀은 작은 원으로 펼친다
+(function spread() {
+  const byKey = {};
+  CANDIDATES.forEach(c => (byKey[c.lat.toFixed(4) + "," + c.lon.toFixed(4)] ||= []).push(c));
+  Object.values(byKey).forEach(arr => arr.forEach((c, i) => {
+    const a = (2 * Math.PI * i) / arr.length, k = arr.length > 1 ? 1 : 0;
+    c.plat = c.lat + k * 0.0025 * Math.sin(a);
+    c.plon = c.lon + k * 0.0031 * Math.cos(a);
+  }));
+})();
+
+const map = L.map("map", { minZoom: 9, maxZoom: 18, scrollWheelZoom: false });
+map.on("focus click", () => map.scrollWheelZoom.enable());
+const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+});
+tiles.once("tileload", () => document.getElementById("map").classList.add("has-tiles"));
+tiles.addTo(map);
+
+const dongLayer = L.geoJSON(DONG, {
+  style: () => ({ className: "dong" }),
+  onEachFeature: (f, layer) => layer.bindTooltip(f.properties.name, { direction: "center", className: "dong-label" })
+}).addTo(map);
+map.fitBounds(dongLayer.getBounds(), { padding: [10, 10] });
+
+const markers = {};
+CANDIDATES.forEach(c => {
+  const m = L.circleMarker([c.plat, c.plon], { radius: isApprox(c) ? 11 : 7, className: `pin ${c.g}${isApprox(c) ? " approx" : ""}` });
+  m.bindPopup(() => popupHtml(c), { maxWidth: 340, autoPanPadding: [20, 20] });
+  m.bindTooltip(c.name, { direction: "top", offset: [0, -8] });
+  m.on("click", () => select(c.id, false));
+  m.on("popupclose", () => { if (state.selected === c.id) select(null, false); });
+  markers[c.id] = m;
+});
+
+function popupHtml(c) {
+  const links = (c.sources || []).map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">출처 ${i + 1}</a>`).join(" · ");
+  const row = (k, v) => v && v !== "미확인" ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : "";
+  return `<div class="pop">
+    <h3>${esc(c.name)}</h3>
+    <div class="sub">${GROUPS[c.g]} · ${esc(c.gu)} ${esc(c.dong)} ${esc(c.addr === "미확인" ? "" : c.addr)}</div>
+    <dl>
+      ${row("유형", c.type)}${row("규모", c.scale)}${row("시기", c.period)}${row("가격", c.price)}
+      ${row("특징", c.feature)}${row("확실도", c.confidence)}
+      ${links ? `<dt>출처</dt><dd>${links}</dd>` : ""}
+    </dl>
+    ${isApprox(c) ? `<div class="note">지도 위치는 ${esc(c.precision)}이에요: ${esc(c.precisionNote)}</div>` : ""}
+  </div>`;
+}
+
+function visible(c) {
+  if (!state.groups.has(c.g)) return false;
+  if (!state.q) return true;
+  const hay = [c.name, c.gu, c.dong, c.addr, c.type, c.feature].join(" ").toLowerCase();
+  return state.q.toLowerCase().split(/\s+/).every(t => hay.includes(t));
+}
+
+function renderChips() {
+  const el = document.getElementById("chips");
+  el.innerHTML = Object.entries(GROUPS).map(([g, label]) => {
+    const n = CANDIDATES.filter(c => c.g === g).length;
+    return `<button class="chip" type="button" id="chip-${g}" data-g="${g}" aria-pressed="true"><span class="dot ${g}"></span>${label}<span class="n">${n}</span></button>`;
+  }).join("");
+  el.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+    const g = b.dataset.g;
+    state.groups.has(g) ? state.groups.delete(g) : state.groups.add(g);
+    render();
+  }));
+}
+
+function render() {
+  document.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", state.groups.has(b.dataset.g)));
+  const shown = CANDIDATES.filter(visible);
+  CANDIDATES.forEach(c => {
+    const on = shown.includes(c), m = markers[c.id];
+    if (on && !map.hasLayer(m)) m.addTo(map);
+    if (!on && map.hasLayer(m)) m.remove();
+  });
+  const approx = CANDIDATES.filter(isApprox).length;
+  document.getElementById("summary").textContent = `${CANDIDATES.length}곳 중 ${shown.length}곳 표시 · ${approx}곳은 대략 위치`;
+  const list = document.getElementById("list");
+  if (!shown.length) { list.innerHTML = `<div class="empty">조건에 맞는 곳이 없어요. 종류를 다시 켜거나 검색어를 바꿔 보세요.</div>`; return; }
+  list.innerHTML = GU_ORDER.map(gu => {
+    const items = shown.filter(c => c.gu === gu);
+    if (!items.length) return "";
+    return `<div class="gu">${gu} · ${items.length}</div>` + items.map(c => `
+      <button class="item${state.selected === c.id ? " on" : ""}" type="button" id="item-${c.id}" data-id="${c.id}">
+        <span class="dot ${c.g}"></span><span class="name">${esc(c.name)}</span>
+        <span class="meta"><span>${esc(c.dong)}</span><span>${esc(c.type)}</span>${isApprox(c) ? `<span class="tag approx">대략 위치</span>` : ""}</span>
+      </button>`).join("");
+  }).join("");
+  list.querySelectorAll(".item").forEach(b => b.addEventListener("click", () => select(+b.dataset.id, true)));
+}
+
+function select(id, fromList) {
+  const prev = state.selected;
+  state.selected = id;
+  if (prev && markers[prev]) markers[prev].getElement()?.classList.remove("on");
+  document.querySelectorAll(".item.on").forEach(e => e.classList.remove("on"));
+  if (id == null) return;
+  const m = markers[id];
+  m.getElement()?.classList.add("on");
+  m.bringToFront();
+  const item = document.getElementById("item-" + id);
+  if (item) { item.classList.add("on"); if (!fromList) item.scrollIntoView({ block: "nearest" }); }
+  if (fromList) { map.setView(m.getLatLng(), Math.max(map.getZoom(), 13)); m.openPopup(); }
+}
+
+// 카드 → 그 종류만 켜고 지도로 이동
+document.querySelectorAll(".card").forEach(b => b.addEventListener("click", () => {
+  state.groups = new Set([b.dataset.g]); render();
+  document.getElementById("map-section").scrollIntoView();
+}));
+document.getElementById("q").addEventListener("input", e => { state.q = e.target.value.trim(); render(); });
+renderChips();
+render();
+</script>
