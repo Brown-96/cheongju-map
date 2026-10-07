@@ -112,6 +112,14 @@ aside { display: flex; flex-direction: column; min-height: 0; min-width: 0; bord
 .pin:not(.approx) { stroke: var(--cream); }
 .pin.approx { fill-opacity: 0.2; stroke-dasharray: 4 3; }
 .pin.on { stroke: var(--ink); stroke-width: 3; }
+/* 카카오맵 핀·팝업 (CustomOverlay) */
+.kpin { display: block; width: 14px; height: 14px; padding: 0; border-radius: 50%; border: 2px solid var(--cream); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.kpin.A { background: var(--grpA); } .kpin.B { background: var(--grpB); } .kpin.C { background: var(--grpC); }
+.kpin.approx { width: 22px; height: 22px; border: 2px dashed var(--cream); opacity: .85; }
+.kpin.on { outline: 3px solid var(--ink); outline-offset: 1px; }
+.kpop { position: relative; margin-bottom: 16px; width: 300px; max-height: 340px; overflow-y: auto; padding: 18px 20px; background: var(--panel); color: var(--ink); border-radius: 2px; box-shadow: 0 6px 24px rgba(55,49,42,.25); font-family: var(--font-body); font-size: 13px; line-height: 1.6; white-space: normal; }
+.kpop-x { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 18px; color: var(--muted); cursor: pointer; }
+@media (max-width: 860px) { .kpop { width: 230px; } }
 .leaflet-container { font-family: var(--font-body); background: var(--paper); }
 .leaflet-popup-content-wrapper { background: var(--panel); color: var(--ink); border-radius: 2px; box-shadow: 0 6px 24px rgba(55,49,42,.18); }
 .leaflet-popup-tip { background: var(--panel); }
@@ -345,6 +353,9 @@ let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTime
 /* ---------- 지도 ---------- */
 const CANDIDATES = /*CANDIDATES_JSON*/;
 const DONG = /*DONG_GEOJSON*/;
+// 카카오 JavaScript 키: 카카오 개발자 콘솔에 등록한 도메인(https://brown-96.github.io)에서만 동작한다.
+// 다른 곳(미리보기 등)에서는 SDK가 거부되고 아래 Leaflet 지도로 자동 전환된다.
+const KAKAO_JS_KEY = "/*KAKAO_JS_KEY*/";
 
 const GROUPS = { A: "전원주택 단지", B: "단독주택 택지", C: "전원주택 밀집지" };
 const GU_ORDER = ["상당구", "서원구", "흥덕구", "청원구"];
@@ -368,30 +379,6 @@ document.querySelectorAll("[data-count]").forEach(el => {
   }));
 })();
 
-const map = L.map("map", { minZoom: 9, maxZoom: 18, scrollWheelZoom: false });
-map.on("focus click", () => map.scrollWheelZoom.enable());
-const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-});
-tiles.once("tileload", () => document.getElementById("map").classList.add("has-tiles"));
-tiles.addTo(map);
-
-const dongLayer = L.geoJSON(DONG, {
-  style: () => ({ className: "dong" }),
-  onEachFeature: (f, layer) => layer.bindTooltip(f.properties.name, { direction: "center", className: "dong-label" })
-}).addTo(map);
-map.fitBounds(dongLayer.getBounds(), { padding: [10, 10] });
-
-const markers = {};
-CANDIDATES.forEach(c => {
-  const m = L.circleMarker([c.plat, c.plon], { radius: isApprox(c) ? 11 : 7, className: `pin ${c.g}${isApprox(c) ? " approx" : ""}` });
-  m.bindPopup(() => popupHtml(c), { maxWidth: 340, autoPanPadding: [20, 20] });
-  m.bindTooltip(c.name, { direction: "top", offset: [0, -8] });
-  m.on("click", () => select(c.id, false));
-  m.on("popupclose", () => { if (state.selected === c.id) select(null, false); });
-  markers[c.id] = m;
-});
-
 function popupHtml(c) {
   const links = (c.sources || []).map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">출처 ${i + 1}</a>`).join(" · ");
   const row = (k, v) => v && v !== "미확인" ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : "";
@@ -405,6 +392,96 @@ function popupHtml(c) {
     </dl>
     ${isApprox(c) ? `<div class="note">지도 위치는 ${esc(c.precision)}이에요: ${esc(c.precisionNote)}</div>` : ""}
   </div>`;
+}
+
+/* 지도 엔진: 카카오맵 또는 Leaflet. 둘 다 같은 모양의 객체를 돌려준다.
+   engine.marker(c) → { show(on), active(on), focus() } */
+function leafletEngine() {
+  const map = L.map("map", { minZoom: 9, maxZoom: 18, scrollWheelZoom: false });
+  map.on("focus click", () => map.scrollWheelZoom.enable());
+  const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  });
+  tiles.once("tileload", () => document.getElementById("map").classList.add("has-tiles"));
+  tiles.addTo(map);
+  const dongLayer = L.geoJSON(DONG, {
+    style: () => ({ className: "dong" }),
+    onEachFeature: (f, layer) => layer.bindTooltip(f.properties.name, { direction: "center", className: "dong-label" })
+  }).addTo(map);
+  map.fitBounds(dongLayer.getBounds(), { padding: [10, 10] });
+  return {
+    marker(c) {
+      const m = L.circleMarker([c.plat, c.plon], { radius: isApprox(c) ? 11 : 7, className: `pin ${c.g}${isApprox(c) ? " approx" : ""}` });
+      m.bindPopup(() => popupHtml(c), { maxWidth: 340, autoPanPadding: [20, 20] });
+      m.bindTooltip(c.name, { direction: "top", offset: [0, -8] });
+      m.on("click", () => select(c.id, false));
+      m.on("popupclose", () => { if (state.selected === c.id) select(null, false); });
+      return {
+        show(on) { if (on && !map.hasLayer(m)) m.addTo(map); if (!on && map.hasLayer(m)) m.remove(); },
+        active(on) { m.getElement()?.classList.toggle("on", on); if (on) m.bringToFront(); },
+        focus() { map.setView(m.getLatLng(), Math.max(map.getZoom(), 13)); m.openPopup(); }
+      };
+    }
+  };
+}
+
+function kakaoEngine() {
+  const K = kakao.maps;
+  const el = document.getElementById("map");
+  el.classList.add("is-kakao");
+  const map = new K.Map(el, { center: new K.LatLng(36.64, 127.49), level: 10 });
+  map.addControl(new K.MapTypeControl(), K.ControlPosition.TOPRIGHT);
+  map.addControl(new K.ZoomControl(), K.ControlPosition.RIGHT);
+  // 페이지 스크롤이 지도에 걸리지 않게, 지도를 한 번 누른 뒤부터 휠 확대를 켠다
+  map.setZoomable(false);
+  K.event.addListener(map, "click", () => { map.setZoomable(true); closePopup(); });
+  const bounds = new K.LatLngBounds();
+  DONG.features.forEach(f => f.geometry.coordinates.forEach(poly => {
+    const path = poly[0].map(([x, y]) => { const p = new K.LatLng(y, x); bounds.extend(p); return p; });
+    new K.Polygon({ map, path, strokeWeight: 1, strokeColor: "#7f7570", strokeOpacity: 0.55, strokeStyle: "solid", fillOpacity: 0 });
+  }));
+  map.setBounds(bounds);
+
+  const popup = new K.CustomOverlay({ clickable: true, xAnchor: 0.5, yAnchor: 1, zIndex: 10 });
+  let popupFor = null;
+  function closePopup() {
+    if (popupFor == null) return;
+    const id = popupFor; popupFor = null; popup.setMap(null);
+    if (state.selected === id) select(null, false);
+  }
+  function openPopup(c, pos) {
+    const box = document.createElement("div");
+    box.className = "kpop";
+    box.innerHTML = `<button type="button" class="kpop-x" aria-label="닫기">×</button>${popupHtml(c)}`;
+    box.querySelector(".kpop-x").addEventListener("click", closePopup);
+    ["mousedown", "touchstart", "wheel", "dblclick"].forEach(t => box.addEventListener(t, e => e.stopPropagation()));
+    popup.setContent(box); popup.setPosition(pos); popup.setMap(map);
+    popupFor = c.id;
+  }
+  return {
+    marker(c) {
+      const pos = new K.LatLng(c.plat, c.plon);
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = `kpin ${c.g}${isApprox(c) ? " approx" : ""}`;
+      dot.title = c.name;
+      dot.setAttribute("aria-label", c.name);
+      dot.addEventListener("click", e => { e.stopPropagation(); select(c.id, false); openPopup(c, pos); });
+      const ov = new K.CustomOverlay({ position: pos, content: dot, clickable: true, xAnchor: 0.5, yAnchor: 0.5, zIndex: 2 });
+      return {
+        show(on) { ov.setMap(on ? map : null); if (!on && popupFor === c.id) closePopup(); },
+        active(on) { dot.classList.toggle("on", on); ov.setZIndex(on ? 5 : 2); },
+        focus() { if (map.getLevel() > 6) map.setLevel(6); map.panTo(pos); openPopup(c, pos); }
+      };
+    }
+  };
+}
+
+let markers = {};
+function boot(engine) {
+  CANDIDATES.forEach(c => { markers[c.id] = engine.marker(c); });
+  renderChips();
+  render();
 }
 
 function visible(c) {
@@ -430,11 +507,7 @@ function renderChips() {
 function render() {
   document.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", state.groups.has(b.dataset.g)));
   const shown = CANDIDATES.filter(visible);
-  CANDIDATES.forEach(c => {
-    const on = shown.includes(c), m = markers[c.id];
-    if (on && !map.hasLayer(m)) m.addTo(map);
-    if (!on && map.hasLayer(m)) m.remove();
-  });
+  CANDIDATES.forEach(c => markers[c.id]?.show(shown.includes(c)));
   const approx = CANDIDATES.filter(isApprox).length;
   document.getElementById("summary").textContent = `${CANDIDATES.length}곳 중 ${shown.length}곳 표시 · ${approx}곳은 대략 위치`;
   const list = document.getElementById("list");
@@ -454,15 +527,13 @@ function render() {
 function select(id, fromList) {
   const prev = state.selected;
   state.selected = id;
-  if (prev && markers[prev]) markers[prev].getElement()?.classList.remove("on");
+  if (prev != null && prev !== id) markers[prev]?.active(false);
   document.querySelectorAll(".item.on").forEach(e => e.classList.remove("on"));
   if (id == null) return;
-  const m = markers[id];
-  m.getElement()?.classList.add("on");
-  m.bringToFront();
+  markers[id].active(true);
   const item = document.getElementById("item-" + id);
   if (item) { item.classList.add("on"); if (!fromList) item.scrollIntoView({ block: "nearest" }); }
-  if (fromList) { map.setView(m.getLatLng(), Math.max(map.getZoom(), 13)); m.openPopup(); }
+  if (fromList) markers[id].focus();
 }
 
 // 카드 → 그 종류만 켜고 지도로 이동
@@ -471,6 +542,24 @@ document.querySelectorAll(".card").forEach(b => b.addEventListener("click", () =
   document.getElementById("map-section").scrollIntoView();
 }));
 document.getElementById("q").addEventListener("input", e => { state.q = e.target.value.trim(); render(); });
-renderChips();
-render();
+
+// 카카오 SDK를 먼저 시도하고, 못 불러오면(도메인 불일치·차단·시간 초과) Leaflet으로 띄운다
+(function start() {
+  let done = false;
+  const fallback = why => { if (done) return; done = true; console.info("카카오맵 대신 기본 지도 사용:", why); boot(leafletEngine()); };
+  if (!KAKAO_JS_KEY || !/^https?:$/.test(location.protocol)) return fallback("키 없음 또는 로컬 파일");
+  const s = document.createElement("script");
+  s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
+  s.onerror = () => fallback("SDK 로드 실패");
+  s.onload = () => {
+    if (!window.kakao?.maps?.load) return fallback("SDK 응답 이상");
+    kakao.maps.load(() => {
+      if (done) return;
+      try { const eng = kakaoEngine(); done = true; boot(eng); }
+      catch (e) { document.getElementById("map").innerHTML = ""; document.getElementById("map").classList.remove("is-kakao"); fallback(e); }
+    });
+  };
+  setTimeout(() => fallback("시간 초과"), 8000);
+  document.head.appendChild(s);
+})();
 </script>

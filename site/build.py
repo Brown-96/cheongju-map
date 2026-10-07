@@ -7,6 +7,9 @@ import csv, json, os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 CSV = os.path.join(HERE, "..", "cheongju", "candidates.csv")
 
+# 카카오 JavaScript 키(공개용 키, 등록된 도메인에서만 동작)
+KAKAO_JS_KEY = "561045556c30f64d6151161914e68f87"
+
 rows = list(csv.DictReader(open(CSV, encoding="utf-8-sig")))
 cands = []
 for r in rows:
@@ -31,7 +34,8 @@ def j(x):  # </script> 깨짐 방지
 
 body = (tpl.replace("/*LEAFLET_CSS*/", css)
            .replace("/*CANDIDATES_JSON*/", j(cands))
-           .replace("/*DONG_GEOJSON*/", dong.replace("</", "<\\/")))
+           .replace("/*DONG_GEOJSON*/", dong.replace("</", "<\\/"))
+           .replace("/*KAKAO_JS_KEY*/", KAKAO_JS_KEY))
 assert "/*" + "CANDIDATES_JSON" not in body
 open(os.path.join(HERE, "artifact.html"), "w", encoding="utf-8").write(body)
 
